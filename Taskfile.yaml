@@ -1,0 +1,31 @@
+
+# See: https://taskfile.dev/api/
+
+version: "3"
+
+tasks:
+  migrate:up:
+    aliases:
+        - up
+    desc: "Apply migrations"
+    cmds:
+      - go run ./cmd/migrator --storage-path=./storage/storage.db --migrations-path=./migrations --migrations-table=migrations
+  
+  migrate:down:
+    aliases:
+        - down
+    desc: "Revert migrations"
+    cmds:
+      - go run ./cmd/migrator --storage-path=./storage/storage.db --migrations-path=./migrations --migrations-table=migrations --down
+
+  migrate:force:
+    desc: "Force migration version (fix dirty state)"
+    cmds:
+      - go run ./cmd/migrator --storage-path=./storage/storage.db --migrations-path=./migrations --migrations-table=migrations --force {{.VERSION}}
+    requires:
+      vars: [VERSION]
+
+  run:
+    desc: "Run application"
+    cmds:
+      - CONFIG_PATH=./config/local.yaml HTTP_SERVER_PASSWORD=shortener-secret go run ./cmd/url-shortener

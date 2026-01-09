@@ -4,8 +4,9 @@ import (
 	"net/http"
 	"time"
 
+	"log/slog"
+
 	"github.com/go-chi/chi/v5/middleware"
-	"golang.org/x/exp/slog"
 )
 
 func New(log *slog.Logger) func(next http.Handler) http.Handler {
@@ -24,6 +25,7 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 				slog.String("user_agent", r.UserAgent()),
 				slog.String("request_id", middleware.GetReqID(r.Context())),
 			)
+			// ResponseWriter не хранит данные о статусе и количестве байт,
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
 			t1 := time.Now()

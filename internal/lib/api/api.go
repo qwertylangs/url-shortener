@@ -11,7 +11,7 @@ var (
 )
 
 // GetRedirect returns the final URL after redirection.
-func GetRedirect(url string) (string, error) {
+func GetRedirect(url string, respError string, code int) (string, error) {
 	const op = "api.GetRedirect"
 
 	client := &http.Client{
@@ -25,6 +25,13 @@ func GetRedirect(url string) (string, error) {
 		return "", err
 	}
 	defer func() { _ = resp.Body.Close() }()
+
+	if respError != "" {
+		if resp.StatusCode != code {
+			return "", fmt.Errorf("%s: %w: expected %d, got %d", op, ErrInvalidStatusCode, code, resp.StatusCode)
+		}
+		return "", errors.New(respError)
+	}
 
 	if resp.StatusCode != http.StatusFound {
 		return "", fmt.Errorf("%s: %w: %d", op, ErrInvalidStatusCode, resp.StatusCode)

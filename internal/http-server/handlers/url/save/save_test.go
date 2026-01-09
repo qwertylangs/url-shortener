@@ -17,6 +17,10 @@ import (
 	"url-shortener/internal/lib/logger/handlers/slogdiscard"
 )
 
+func Ptr[T any](v T) *T {
+	return &v
+}
+
 func TestSaveHandler(t *testing.T) {
 	cases := []struct {
 		name      string
@@ -24,6 +28,7 @@ func TestSaveHandler(t *testing.T) {
 		url       string
 		respError string
 		mockError error
+		code      *int
 	}{
 		{
 			name:  "Success",
@@ -40,12 +45,14 @@ func TestSaveHandler(t *testing.T) {
 			url:       "",
 			alias:     "some_alias",
 			respError: "field URL is a required field",
+			code:      Ptr(http.StatusBadRequest),
 		},
 		{
 			name:      "Invalid URL",
 			url:       "some invalid URL",
 			alias:     "some_alias",
 			respError: "field URL is not a valid URL",
+			code:      Ptr(http.StatusBadRequest),
 		},
 		{
 			name:      "SaveURL Error",
@@ -53,6 +60,7 @@ func TestSaveHandler(t *testing.T) {
 			url:       "https://google.com",
 			respError: "failed to add url",
 			mockError: errors.New("unexpected error"),
+			code:      Ptr(http.StatusInternalServerError),
 		},
 	}
 
@@ -80,7 +88,11 @@ func TestSaveHandler(t *testing.T) {
 			rr := httptest.NewRecorder()
 			handler.ServeHTTP(rr, req)
 
-			require.Equal(t, rr.Code, http.StatusOK)
+			if tc.code != nil {
+				require.Equal(t, rr.Code, *tc.code)
+			} else {
+				require.Equal(t, rr.Code, http.StatusOK)
+			}
 
 			body := rr.Body.String()
 
