@@ -12,6 +12,7 @@ import (
 	"url-shortener/internal/http-server/handlers/login"
 	"url-shortener/internal/http-server/handlers/redirect"
 	"url-shortener/internal/http-server/handlers/register"
+	"url-shortener/internal/http-server/handlers/url/delete"
 	"url-shortener/internal/http-server/handlers/url/getUrls"
 	"url-shortener/internal/http-server/handlers/url/save"
 	"url-shortener/internal/http-server/middleware/auth"
@@ -56,6 +57,7 @@ func NewRouter(
 		r.Use(authMiddleware)
 		r.Post("/", save.New(log, urlStorage))
 		r.Get("/", getUrls.New(log, urlStorage))
+		r.Delete("/{alias}", delete.New(log, urlStorage, ssoClient))
 		// TODO: add DELETE /url/{id}
 	})
 

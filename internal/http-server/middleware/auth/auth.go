@@ -2,9 +2,9 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"url-shortener/internal/config"
 	"url-shortener/internal/lib/logger/sl"
@@ -45,20 +45,30 @@ func New(log *slog.Logger, cfg *config.AppConfig) func(next http.Handler) http.H
 			}
 			tokenClaims, _ := tokenParsed.Claims.(jwt.MapClaims)
 
-			var userId string
+			var userId int64
 			switch v := tokenClaims["uid"].(type) {
+			// go читает числа из json как float64
 			case float64:
-				userId = fmt.Sprintf("%.0f", v) // Преобразуем float64 в строку без десятичной части
+				userId = int64(v)
 			case string:
-				userId = v
+				userId, err = strconv.ParseInt(v, 10, 64)
+				if err != nil {
+					log.Error("failed to parse user id", sl.Err(err))
+					http.Error(w, "Unauthorized", http.StatusUnauthorized)
+					return
+				}
 			default:
 				log.Error("unexpected uid type", slog.Any("type", v))
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 			
-			userEmail := tokenClaims["email"].(string)
-			log.Info("token claims", slog.String("user_id", userId), slog.String("user_email", userEmail))
+			userEmail, ok := tokenClaims["email"].(string)
+			if !ok {
+				log.Error("failed to get user email", sl.Err(err))
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
 
 			r = r.WithContext(context.WithValue(r.Context(), UserIDContextKey, userId))
 			r = r.WithContext(context.WithValue(r.Context(), UserEmailContextKey, userEmail))

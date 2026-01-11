@@ -34,7 +34,7 @@ const aliasLength = 6
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=URLSaver
 type URLSaver interface {
-	SaveURL(ctx context.Context, urlToSave string, alias string, userID string) (int64, error)
+	SaveURL(ctx context.Context, urlToSave string, alias string, userID int64) (int64, error)
 }
 
 func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
@@ -89,7 +89,7 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 			alias = random.NewRandomString(aliasLength)
 		}
 
-		userID, ok := r.Context().Value(auth.UserIDContextKey).(string)
+		userID, ok := r.Context().Value(auth.UserIDContextKey).(int64)
 		if !ok {
 			log.Error("user_id not found in context")
 			render.Status(r, http.StatusInternalServerError)

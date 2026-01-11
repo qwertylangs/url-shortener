@@ -19,7 +19,7 @@ type Storage struct {
 func New(storagePath string) (*Storage, error) {
 	const op = "storage.sqlite.New"
 
-	db, err := sql.Open("sqlite3", storagePath)
+	db, err := sql.Open("sqlite3", fmt.Sprintf("%s?_journal_mode=WAL&_busy_timeout=5000", storagePath))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -27,7 +27,7 @@ func New(storagePath string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string, userID string) (int64, error) {
+func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string, userID int64) (int64, error) {
 	const op = "storage.sqlite.SaveURL"
 
 	stmt, err := s.db.Prepare("INSERT INTO url(url, alias, user_id) VALUES(?, ?, ?)")
@@ -77,7 +77,7 @@ func (s *Storage) GetURL(ctx context.Context, alias string) (string, error) {
 // TODO: implement method
 // func (s *Storage) DeleteURL(alias string) error
 
-func(s *Storage) GetUserURLs(ctx context.Context, userID string) ([]models.URL, error) {
+func(s *Storage) GetUserURLs(ctx context.Context, userID int64) ([]models.URL, error) {
 	const op = "storage.sqlite.GetUserURLs"
 
 	stmt, err := s.db.Prepare("SELECT id, url, alias, user_id, created_at, updated_at FROM url WHERE user_id = ? ORDER BY updated_at DESC")
@@ -108,4 +108,39 @@ func(s *Storage) GetUserURLs(ctx context.Context, userID string) ([]models.URL, 
 	}
 
 	return urls, nil
+}
+
+func (s *Storage) DeleteURL(ctx context.Context, alias string, userID int64, isAdmin bool) error {
+	const op = "storage.sqlite.DeleteURL"
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("%s: begin transaction: %w", op, err)
+	}
+	defer tx.Rollback()
+
+	
+	if !isAdmin {
+		var creatorUserID int64
+		err := tx.QueryRowContext(ctx, "SELECT user_id FROM url WHERE alias = ?", alias).Scan(&creatorUserID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return storage.ErrURLNotFound
+			}
+			return fmt.Errorf("%s: query row: %w", op, err)
+		}
+		if creatorUserID != userID {
+			return storage.ErrURLNotOwned
+		}
+	}
+	
+	if _, err = tx.ExecContext(ctx, "DELETE FROM url WHERE alias = ?", alias); err != nil {
+		return fmt.Errorf("%s: execute statement: %w", op, err)
+	}
+
+	if err := tx.Commit(); err != nil {
+        return fmt.Errorf("%s: commit transaction: %w", op, err)
+    }
+
+	return nil
 }

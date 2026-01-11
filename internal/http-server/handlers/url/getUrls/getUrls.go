@@ -23,7 +23,7 @@ type Response struct {
 }
 
 type URLsGetter interface {
-	GetUserURLs(ctx context.Context, userID string) ([]models.URL, error)
+	GetUserURLs(ctx context.Context, userID int64) ([]models.URL, error)
 }
 
 func New(log *slog.Logger, urlsGetter URLsGetter) http.HandlerFunc {
@@ -35,7 +35,7 @@ func New(log *slog.Logger, urlsGetter URLsGetter) http.HandlerFunc {
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
-		userID, ok := r.Context().Value(auth.UserIDContextKey).(string)
+		userID, ok := r.Context().Value(auth.UserIDContextKey).(int64)
 		if !ok {
 			log.Error("user_id not found in context")
 			render.Status(r, http.StatusInternalServerError)
