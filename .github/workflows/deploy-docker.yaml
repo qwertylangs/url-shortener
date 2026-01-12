@@ -30,7 +30,6 @@ jobs:
           docker push ghcr.io/${{ github.repository }}:latest
 
       - name: Trigger infrastructure deployment
-        if: github.event_name == 'push'
         uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.PAT_TOKEN }}
