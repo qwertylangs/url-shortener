@@ -1,0 +1,13 @@
+env: "prod"
+storage_path: "./storage/storage.db"
+http_server:
+  address: "0.0.0.0:8082"
+  timeout: 4s
+  idle_timeout: 30s
+clients:
+  sso:
+    address: "sso:44044"
+    timeout: 4s
+    retries: 3
+    insecure: true
+    app_id: 2
