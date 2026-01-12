@@ -9,6 +9,7 @@ import (
 
 	ssoGrpc "url-shortener/internal/clients/sso/grpc"
 	"url-shortener/internal/config"
+	"url-shortener/internal/http-server/handlers/health"
 	"url-shortener/internal/http-server/handlers/login"
 	"url-shortener/internal/http-server/handlers/redirect"
 	"url-shortener/internal/http-server/handlers/register"
@@ -63,6 +64,7 @@ func NewRouter(
 
 	// Public routes
 	router.Get("/{alias}", redirect.New(log, urlStorage))
+	router.Get("/health", health.New(log))
 
 	return router
 }
